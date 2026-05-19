@@ -174,9 +174,9 @@ class OwnerController {
 	}
 	// Vulnerabilidad deliberada: SQL Injection
 
-	public void buscarOwner(String nombre) {
-		String query = "SELECT * FROM owners WHERE nombre = '" + nombre + "'";
-		System.out.println(query);
-	}
+	// public void buscarOwner(String nombre) {
+	// 	String query = "SELECT * FROM owners WHERE nombre = '" + nombre + "'";
+	// 	System.out.println(query);
+	// }
 
 }

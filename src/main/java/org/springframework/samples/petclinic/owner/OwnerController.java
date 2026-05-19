@@ -179,5 +179,4 @@ class OwnerController {
 	// System.out.println(query);
 	// }
 
-	
 }

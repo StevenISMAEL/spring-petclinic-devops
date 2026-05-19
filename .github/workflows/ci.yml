@@ -16,7 +16,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0        # requerido por SonarCloud
+          fetch-depth: 0
 
       - name: Set up JDK 21
         uses: actions/setup-java@v4
@@ -33,7 +33,7 @@ jobs:
             ${{ runner.os }}-maven-
 
       - name: Build and test
-        run: mvn verify --no-transfer-progress
+        run: mvn verify jacoco:report --no-transfer-progress
 
       - name: Upload test results
         uses: actions/upload-artifact@v4
@@ -42,7 +42,6 @@ jobs:
           name: test-results
           path: target/surefire-reports/
 
-      # ── NUEVO: SonarCloud ──────────────────
       - name: SonarCloud Analysis
         uses: SonarSource/sonarcloud-github-action@master
         env:
@@ -52,4 +51,7 @@ jobs:
           args: >
             -Dsonar.projectKey=StevenISMAEL_spring-petclinic-devops
             -Dsonar.organization=stevenismael
+            -Dsonar.java.binaries=target/classes
+            -Dsonar.java.test.binaries=target/test-classes
+            -Dsonar.coverage.jacoco.xmlReportPaths=target/site/jacoco/jacoco.xml
             -Dsonar.qualitygate.wait=true

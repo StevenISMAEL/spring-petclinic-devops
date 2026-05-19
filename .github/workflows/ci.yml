@@ -15,6 +15,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0        # requerido por SonarCloud
 
       - name: Set up JDK 21
         uses: actions/setup-java@v4
@@ -39,3 +41,15 @@ jobs:
         with:
           name: test-results
           path: target/surefire-reports/
+
+      # ── NUEVO: SonarCloud ──────────────────
+      - name: SonarCloud Analysis
+        uses: SonarSource/sonarcloud-github-action@master
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        with:
+          args: >
+            -Dsonar.projectKey=StevenISMAEL_spring-petclinic-devops
+            -Dsonar.organization=stevenismael
+            -Dsonar.qualitygate.wait=true

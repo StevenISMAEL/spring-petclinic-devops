@@ -2,13 +2,15 @@
 FROM eclipse-temurin:21-jdk-alpine AS builder
 WORKDIR /app
 
-# Copiar solo pom.xml primero (aprovechar cache de capas)
-COPY pom.xml .
-RUN mvn dependency:go-offline -q
+# Copiar el wrapper de Maven y el pom.xml
+COPY .mvn/ .mvn/
+COPY mvnw pom.xml ./
+RUN chmod +x ./mvnw
+RUN ./mvnw dependency:go-offline -q
 
 # Compilar el código
 COPY src ./src
-RUN mvn package -DskipTests --no-transfer-progress
+RUN ./mvnw package -DskipTests --no-transfer-progress
 
 # Extraer capas de Spring Boot para optimizar cache
 RUN java -Djarmode=layertools -jar target/*.jar extract

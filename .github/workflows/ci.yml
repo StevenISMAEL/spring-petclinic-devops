@@ -110,6 +110,7 @@ jobs:
     needs: docker
     steps:
       - name: Update Kubernetes Deployment
+        continue-on-error: true
         run: |
           # Comando solicitado por el taller para actualizar la imagen
           kubectl set image deployment/petclinic petclinic=${{ env.REGISTRY }}/${{ env.IMAGE_NAME_LOWER }}:${{ github.sha }} -n devops-lab

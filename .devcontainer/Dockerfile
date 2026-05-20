@@ -1,11 +1,40 @@
-# Not actually used by the devcontainer, but it is used by gitpod
-ARG VARIANT=17-bullseye
-FROM mcr.microsoft.com/vscode/devcontainers/java:0-${VARIANT}
-ARG NODE_VERSION="none"
-RUN if [ "${NODE_VERSION}" != "none" ]; then su vscode -c "umask 0002 && . /usr/local/share/nvm/nvm.sh && nvm install ${NODE_VERSION} 2>&1"; fi
-ARG USER=vscode
-VOLUME /home/$USER/.m2
-VOLUME /home/$USER/.gradle
-ARG JAVA_VERSION=17.0.7-ms
-RUN sudo mkdir /home/$USER/.m2 /home/$USER/.gradle && sudo chown $USER:$USER /home/$USER/.m2 /home/$USER/.gradle
-RUN bash -lc '. /usr/local/sdkman/bin/sdkman-init.sh && sdk install java $JAVA_VERSION && sdk use java $JAVA_VERSION'
+# ── Stage 1: BUILD ──────────────────────────────
+FROM eclipse-temurin:21-jdk-alpine AS builder
+WORKDIR /app
+
+# Copiar solo pom.xml primero (aprovechar cache de capas)
+COPY pom.xml .
+RUN mvn dependency:go-offline -q
+
+# Compilar el código
+COPY src ./src
+RUN mvn package -DskipTests --no-transfer-progress
+
+# Extraer capas de Spring Boot para optimizar cache
+RUN java -Djarmode=layertools -jar target/*.jar extract
+
+# ── Stage 2: RUNTIME ────────────────────────────
+FROM eclipse-temurin:21-jre-alpine AS runtime
+
+# Usuario no-root (seguridad)
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+USER appuser
+
+WORKDIR /app
+
+# Copiar capas en orden (menos cambiantes primero)
+COPY --from=builder /app/dependencies/ ./
+COPY --from=builder /app/spring-boot-loader/ ./
+COPY --from=builder /app/snapshot-dependencies/ ./
+COPY --from=builder /app/application/ ./
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=60s \
+  CMD wget -q --spider http://localhost:8080/actuator/health || exit 1
+
+EXPOSE 8080
+
+# Flags JVM para contenedores
+ENV JAVA_OPTS="-XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0"
+
+ENTRYPOINT ["java", "org.springframework.boot.loader.launch.JarLauncher"]
